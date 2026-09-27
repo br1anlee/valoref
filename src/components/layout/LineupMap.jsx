@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import "./LineupMap.css";
 import { calloutPosition, playableMaps, resolvePoint } from "../../utils/valorant";
 
@@ -8,18 +8,18 @@ import { calloutPosition, playableMaps, resolvePoint } from "../../utils/valoran
 // marker selects that line up; a line is drawn to where the ability lands when
 // that is recorded.
 //
-// In development a "Place" mode turns clicks into coordinates, so positions can
-// be clicked out of the map rather than guessed. It never ships - authoring
-// tools have no business in a page a player reads.
+// When the position editor arms a field, a click on the map reports its
+// coordinate back through onPlace. That only happens in development; the editor
+// is not rendered in a build.
 export default function LineupMap({
   gameMaps,
   mapName,
   lineups,
   selectedId,
   onSelect,
+  armed = null,
+  onPlace,
 }) {
-  const [placing, setPlacing] = useState(false);
-  const [picked, setPicked] = useState(null);
   const frameRef = useRef(null);
 
   const map = playableMaps(gameMaps).find(
@@ -70,21 +70,24 @@ export default function LineupMap({
   });
 
   const handleClick = (event) => {
-    if (!placing) return;
+    if (!armed || !onPlace) return;
 
     const rect = frameRef.current.getBoundingClientRect();
+    // Clicking before the minimap has laid out would divide by zero and store
+    // a NaN, which JSON turns into null and the renderer then chokes on.
+    if (!rect.width || !rect.height) return;
+
     const x = +((event.clientX - rect.left) / rect.width).toFixed(3);
     const y = +((event.clientY - rect.top) / rect.height).toFixed(3);
-    const snippet = `from: { x: ${x}, y: ${y} },`;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
-    setPicked(snippet);
-    navigator.clipboard?.writeText(snippet).catch(() => {});
+    onPlace({ x, y });
   };
 
   return (
     <div className="lineup-map">
       <div
-        className={`lineup-map-frame${placing ? " is-placing" : ""}`}
+        className={`lineup-map-frame${armed ? " is-placing" : ""}`}
         ref={frameRef}
         onClick={handleClick}
       >
@@ -148,27 +151,12 @@ export default function LineupMap({
         <span>
           {placed.length} of {lineups.length} positioned
         </span>
-
-        {process.env.NODE_ENV === "development" && (
-          <button
-            type="button"
-            className="chip"
-            aria-pressed={placing}
-            onClick={() => {
-              setPlacing((on) => !on);
-              setPicked(null);
-            }}
-          >
-            Place
-          </button>
+        {armed && (
+          <span className="lineup-map-arming">
+            Click to set {armed.field}
+          </span>
         )}
       </footer>
-
-      {picked && (
-        <p className="lineup-map-picked">
-          Copied <code>{picked}</code>
-        </p>
-      )}
     </div>
   );
 }

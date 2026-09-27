@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import "../layout/Lineup-page.css";
 import LineupEntry from "../layout/LineupEntry";
 import LineupMap from "../layout/LineupMap";
+import LineupAdmin, { savePosition } from "../layout/LineupAdmin";
 import {
   SIDES,
   agentsOn,
@@ -20,6 +21,15 @@ export default function AgentMapLineups({ gameMaps, agents }) {
   const { agent: slug, map: mapParam } = useParams();
   const [params, setParams] = useSearchParams();
   const [openId, setOpenId] = useState(null);
+  // Position editor - development only, stripped from any build.
+  const isDev = process.env.NODE_ENV === "development";
+  const [armed, setArmed] = useState(null);
+  const [status, setStatus] = useState(null);
+
+  const save = useCallback(
+    (body, message) => savePosition(body).then(setStatus, setStatus).then(() => message),
+    []
+  );
 
   const agent = getAgent(slug);
   if (!agent) return <Navigate to="/nonexistent" replace />;
@@ -134,8 +144,35 @@ export default function AgentMapLineups({ gameMaps, agents }) {
           lineups={lineups}
           selectedId={openId}
           onSelect={(id) => setOpenId((cur) => (cur === id ? null : id))}
+          armed={isDev ? armed : null}
+          onPlace={
+            isDev
+              ? (point) => {
+                  if (!armed) return;
+                  save({ id: armed.id, [armed.field]: point });
+                  setArmed(null);
+                }
+              : undefined
+          }
         />
       </div>
+
+      {isDev && (
+        <LineupAdmin
+          lineups={lineups}
+          armed={armed}
+          status={status}
+          onArm={(next) =>
+            setArmed((current) =>
+              current?.id === next.id && current.field === next.field ? null : next
+            )
+          }
+          onClear={(id) => {
+            save({ id, from: null, to: null });
+            setArmed(null);
+          }}
+        />
+      )}
 
       {/* The "how am I useful here" answer, before any execution detail. */}
       <section className="role-brief">

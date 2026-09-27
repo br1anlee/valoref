@@ -134,8 +134,13 @@ export function calloutsBySide(map) {
 export function resolvePoint(map, value) {
   if (!value || !map) return null;
 
-  if (typeof value === "object" && typeof value.x === "number") {
-    return { left: value.x, top: value.y };
+  // Both axes must be real numbers. A partially written position - which a
+  // divide-by-zero can produce before the map image has laid out - would
+  // otherwise reach the renderer and crash it.
+  if (typeof value === "object") {
+    return Number.isFinite(value.x) && Number.isFinite(value.y)
+      ? { left: value.x, top: value.y }
+      : null;
   }
 
   if (typeof value !== "string") return null;

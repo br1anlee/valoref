@@ -318,8 +318,17 @@ same vocabulary the titles already use - or give coordinates:
 Callout names resolve against live map data, so the schematic is the game's own
 minimap and callout list rather than hand-placed art. Line ups sharing a callout
 are fanned out around it, since a callout resolves to a single point and their
-pins would otherwise stack. Running in development adds a **Place** button that
-turns a click on the map into coordinates.
+pins would otherwise stack.
+
+**Placing them is a pointing exercise, not a typing one.** `npm start` puts a
+position editor on each agent x map page: pick a line up's `from` or `to`, click
+the map, and the coordinate is written straight into
+[`src/data/lineups.js`](./src/data/lineups.js) by the dev server. Hot reload
+brings the pin back onto the map immediately.
+
+The editor and the route it calls exist only under `react-scripts start` -
+[`src/setupProxy.js`](./src/setupProxy.js) is never part of a build - so there
+is nothing to reach on a deployed site.
 
 **Teaching fields** are the point - a list of videos already exists elsewhere:
 
@@ -378,6 +387,7 @@ src/
 scripts/
 ├── fetch-lineup-titles.mjs     # populates line-up titles from YouTube
 └── lineup-gaps.mjs             # reports undocumented line ups
+src/setupProxy.js               # dev-only API behind the position editor
 .github/workflows/
 ├── ci.yml                      # tests + build on every push and PR
 └── deploy.yml                  # publishes to GitHub Pages

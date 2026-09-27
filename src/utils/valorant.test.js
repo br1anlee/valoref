@@ -193,4 +193,14 @@ describe("resolvePoint", () => {
     expect(resolvePoint(map, null)).toBe(null);
     expect(resolvePoint(null, "Main")).toBe(null);
   });
+
+  // A click measured before the minimap has laid out divides by zero, and the
+  // resulting NaN becomes null once it has been through JSON. Half a point is
+  // not a point; letting one through crashed the renderer.
+  test("rejects a partially written point", () => {
+    expect(resolvePoint(map, { x: 0.3, y: null })).toBe(null);
+    expect(resolvePoint(map, { x: 0.3 })).toBe(null);
+    expect(resolvePoint(map, { x: NaN, y: 0.5 })).toBe(null);
+    expect(resolvePoint(map, {})).toBe(null);
+  });
 });
